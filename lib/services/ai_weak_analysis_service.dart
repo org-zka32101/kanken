@@ -44,20 +44,25 @@ class AIWeakAnalysisService {
   }
 
   /// 苦手集中モード用の問題セットを取得
-  /// 最近の誤答が多い漢字から出題
+  /// 最近の誤答が多い漢字から出題（学習済みを除外）
   Future<List<KanjiQuestion>> getWeakKanjiFocusQuestions(
     String uid, {
     int limit = 10,
   }) async {
     try {
       final weakKanjis =
-          await _firestoreService.getUserWeakKanjis(uid, limit: limit);
+          await _firestoreService.getUserWeakKanjis(uid, limit: limit * 2);
+
+      // 学習済み質問を取得
+      final learnedKanjis = await _firestoreService.getUserLearnedKanjis(uid);
+      final learnedQuestionIds = learnedKanjis.map((l) => l.questionId).toSet();
 
       final questions = <KanjiQuestion>[];
       for (final weak in weakKanjis) {
         final question = await _firestoreService.getKanjiQuestion(weak.kanjiId);
-        if (question != null) {
+        if (question != null && !learnedQuestionIds.contains(question.id)) {
           questions.add(question);
+          if (questions.length >= limit) break;
         }
       }
 

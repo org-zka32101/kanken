@@ -193,4 +193,64 @@ class FirestoreService {
         .doc(account.uid)
         .update(account.toFirestore());
   }
+
+  // LearnedKanji operations
+  Future<void> markAsLearned(LearnedKanji learned) async {
+    try {
+      // 既に学習済みかチェック
+      final existing = await _firestore
+          .collection('learned_kanji')
+          .where('uid', isEqualTo: learned.uid)
+          .where('questionId', isEqualTo: learned.questionId)
+          .get();
+
+      if (existing.docs.isEmpty) {
+        await _firestore.collection('learned_kanji').add(learned.toFirestore());
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<LearnedKanji>> getUserLearnedKanjis(String uid) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('learned_kanji')
+          .where('uid', isEqualTo: uid)
+          .orderBy('learnedAt', descending: true)
+          .get();
+      return querySnapshot.docs.map(LearnedKanji.fromFirestore).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> isQuestionLearned(String uid, String questionId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('learned_kanji')
+          .where('uid', isEqualTo: uid)
+          .where('questionId', isEqualTo: questionId)
+          .get();
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> unmarkAsLearned(String uid, String questionId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('learned_kanji')
+          .where('uid', isEqualTo: uid)
+          .where('questionId', isEqualTo: questionId)
+          .get();
+
+      for (final doc in querySnapshot.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

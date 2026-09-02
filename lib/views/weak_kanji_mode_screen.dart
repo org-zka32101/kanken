@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/index.dart';
 import '../services/index.dart';
 import '../viewmodels/index.dart';
+import '../widgets/correct_feedback_widget.dart';
 
 /// 苦手集中モード画面
 class WeakKanjiModeScreen extends ConsumerWidget {
@@ -210,7 +211,7 @@ class WeakKanjiModeScreen extends ConsumerWidget {
                           side: BorderSide(color: Colors.orange[200]!),
                         ),
                         onPressed: () {
-                          _handleAnswer(context, ref, isCorrect);
+                          _handleAnswer(context, ref, isCorrect, question);
                         },
                         child: Text(choice),
                       ),
@@ -234,24 +235,50 @@ class WeakKanjiModeScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     bool isCorrect,
+    KanjiQuestion question,
   ) async {
     final practiceVM = ref.read(practiceViewModelProvider.notifier);
     final uid = ref.read(currentUserIdProvider);
+    final firestoreService = ref.read(firestoreServiceProvider);
 
     await practiceVM.answerQuestion(isCorrect);
 
-    // 演出
     if (isCorrect) {
       await SoundEffectService().playCorrectSound();
       await HapticFeedbackService.lightTap();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✨ 正解！よく覚えましたね'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+
+      // フィードバックウィジェットをダイアログで表示
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return Dialog(
+              insetPadding: const EdgeInsets.all(24),
+              child: CorrectFeedbackWidget(
+                onComplete: () {
+                  Navigator.pop(dialogContext);
+                  practiceVM.moveToNextQuestion();
+                },
+                onLearnedToggle: (isLearned) async {
+                  if (isLearned && uid != null) {
+                    // 学習済みとしてマーク
+                    final learned = LearnedKanji(
+                      id: '',
+                      uid: uid,
+                      questionId: question.id,
+                      kanji: question.kanji,
+                      level: question.level,
+                      learnedAt: DateTime.now(),
+                    );
+                    await firestoreService.markAsLearned(learned);
+                  }
+                },
+              ),
+            );
+          },
+        );
+      }
     } else {
       await SoundEffectService().playIncorrectSound();
       await HapticFeedbackService.shake();
@@ -263,16 +290,9 @@ class WeakKanjiModeScreen extends ConsumerWidget {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    }
 
-    // 正解時は苦手漢字をマーク
-    if (isCorrect && uid != null) {
-      final aiWeakService = ref.read(aiWeakAnalysisServiceProvider);
-      // TODO: 最後の問題の ID を正しく取得
-      // await aiWeakService.markAsMatured(uid, questionId);
+      await Future.delayed(const Duration(milliseconds: 1500));
+      practiceVM.moveToNextQuestion();
     }
-
-    await Future.delayed(const Duration(milliseconds: 1500));
-    practiceVM.moveToNextQuestion();
   }
 }

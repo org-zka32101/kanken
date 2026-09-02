@@ -4,10 +4,12 @@ import 'package:lottie/lottie.dart';
 /// 正解時のフィードバックウィジェット
 class CorrectFeedbackWidget extends StatefulWidget {
   final VoidCallback onComplete;
+  final Function(bool)? onLearnedToggle; // 「覚えた」チェックのコールバック
 
   const CorrectFeedbackWidget({
     Key? key,
     required this.onComplete,
+    this.onLearnedToggle,
   }) : super(key: key);
 
   @override
@@ -19,6 +21,7 @@ class _CorrectFeedbackWidgetState extends State<CorrectFeedbackWidget>
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
+  bool _isLearned = false;
 
   @override
   void initState() {
@@ -37,8 +40,13 @@ class _CorrectFeedbackWidgetState extends State<CorrectFeedbackWidget>
       CurvedAnimation(parent: _controller, curve: const Interval(0.7, 1.0)),
     );
 
+    // アニメーション終了後、2 秒待機してから完了
     _controller.forward().then((_) {
-      widget.onComplete();
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (mounted) {
+          widget.onComplete();
+        }
+      });
     });
   }
 
@@ -55,30 +63,83 @@ class _CorrectFeedbackWidgetState extends State<CorrectFeedbackWidget>
       child: FadeTransition(
         opacity: _opacityAnimation,
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 紙吹雪エフェクト（Lottie）
-              SizedBox(
-                width: 200,
-                height: 200,
-                child: Lottie.asset(
-                  'assets/lottie/confetti.json',
-                  repeat: false,
-                  fit: BoxFit.contain,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 紙吹雪エフェクト（Lottie）
+                SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: Lottie.asset(
+                    'assets/lottie/confetti.json',
+                    repeat: false,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              // 正解テキスト
-              const Text(
-                '✨ 正解！',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                const SizedBox(height: 16),
+                // 正解テキスト
+                const Text(
+                  '✨ 正解！',
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 32),
+                // 「覚えた」チェックボックス
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green[200]!, width: 2),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: _isLearned,
+                        onChanged: (value) {
+                          setState(() {
+                            _isLearned = value ?? false;
+                          });
+                          widget.onLearnedToggle?.call(_isLearned);
+                        },
+                        activeColor: Colors.green,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'この漢字は覚えた',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'チェックすると今後この問題は出題されません',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
