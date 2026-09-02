@@ -68,6 +68,7 @@ flutter:
 
   assets:
     - assets/lottie/
+    - assets/sounds/
     - assets/images/
 
   fonts:
