@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
+import 'views/index.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,39 +37,6 @@ class MyApp extends ConsumerWidget {
       ),
       themeMode: ThemeMode.system,
       home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('小学コレ！漢検'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              '漢字検定学習アプリ',
-              style: TextStyle(fontSize: 24),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('UI実装予定')),
-                );
-              },
-              child: const Text('演習を始める'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
