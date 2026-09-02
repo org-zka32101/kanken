@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/index.dart';
 import '../viewmodels/index.dart';
+import '../services/index.dart';
+import '../widgets/index.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -370,15 +372,30 @@ class PracticeScreen extends ConsumerWidget {
 
   Future<void> _handleAnswer(BuildContext context, WidgetRef ref, bool isCorrect) async {
     final practiceVM = ref.read(practiceViewModelProvider.notifier);
+    final level = ref.read(currentLevelProvider);
+
     await practiceVM.answerQuestion(isCorrect);
 
-    // 演出（シェイク / Lottie）
+    // 演出（Lottie + SE + ハプティクス）
     if (isCorrect) {
-      // 正解時の演出
+      // SE再生（正解）
+      await SoundEffectService().playCorrectSound();
+      // ハプティクス（軽いタップ）
+      await HapticFeedbackService.lightTap();
+      // 正解演出表示
       _showCorrectFeedback(context);
+      // Analytics: 3問正解でAha Moment
+      final ahaMoment = ref.read(ahaMomentReachedProvider);
+      if (ahaMoment) {
+        await AnalyticsService.logAhaMomentReached(level: level);
+      }
     } else {
-      // 不正解時の演出
-      _shakeWidget(context);
+      // SE再生（不正解）
+      await SoundEffectService().playIncorrectSound();
+      // ハプティクス（シェイク）
+      await HapticFeedbackService.shake();
+      // 不正解演出表示
+      _showIncorrectFeedback(context);
     }
 
     // 少し待ってから次の問題へ
@@ -392,17 +409,18 @@ class PracticeScreen extends ConsumerWidget {
         content: Text('✨ 正解！'),
         backgroundColor: Colors.green,
         duration: Duration(milliseconds: 1500),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  void _shakeWidget(BuildContext context) {
-    // TODO: ハプティクスフィードバック
+  void _showIncorrectFeedback(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('⚠️ 不正解'),
         backgroundColor: Colors.red,
         duration: Duration(milliseconds: 1500),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
