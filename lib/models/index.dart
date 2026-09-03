@@ -6,3 +6,4 @@ export 'mock_exam.dart';
 export 'mock_exam_result.dart';
 export 'collection_badge.dart';
 export 'parent_account.dart';
+export 'learned_kanji.dart';
