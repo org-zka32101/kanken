@@ -34,7 +34,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('小学コレ！漢検'),
+        title: const Text('小学漢検チャレンジ'),
         elevation: 0,
       ),
       body: SingleChildScrollView(

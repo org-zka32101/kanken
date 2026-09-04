@@ -1,0 +1,53 @@
+name: Firebase Data Import
+
+on:
+  # 手動トリガー
+  workflow_dispatch:
+
+  # 新しいリリースタグを作成した時
+  release:
+    types: [published]
+
+  # main ブランチへのプッシュ時
+  push:
+    branches:
+      - main
+    paths:
+      - 'export_data/**'
+
+jobs:
+  import-firestore-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Setup Firebase credentials
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/firebase-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-key.json
+
+      - name: Import kanji questions data
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-key.json
+          firebase firestore:import export_data/kanji_questions_600.jsonl
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Verify import
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-key.json
+          echo "Import completed successfully ✅"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/firebase-key.json
